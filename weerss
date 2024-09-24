@@ -1,0 +1,3 @@
+
+#node --import "`dirname $0`/js/register.js" "`dirname $0`/js/cmd.js" "$@"
+node "`dirname $0`/js/cmd.js" "$@"

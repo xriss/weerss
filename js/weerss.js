@@ -1,0 +1,565 @@
+
+const weerss={}
+export default weerss
+
+//import serv from "./serv.js"
+
+import db from "./db.js"
+import jxml from "./jxml.js"
+
+import hoard from "./hoard.js"
+import feeds from "./feeds.js"
+import items from "./items.js"
+import torrents from "./torrents.js"
+import shows from "./shows.js"
+
+
+import util from "util"
+import {moveFile} from 'move-file'
+
+import fs from "fs"
+import path from "path"
+
+import sanitize from "sanitize-filename"
+
+
+import djon from "@xriss/djon"
+
+
+
+weerss.config_default=`
+{
+ debug = FALSE
+ feeds = [
+  "https://archive.org/services/collection-rss.php?collection=television_inbox"
+ ]
+ rss = {
+  length = 100
+ }
+ show = {
+  rules = [
+   [ TRUE ]
+   [ "!english" FALSE ]
+  ]
+ }
+ episode = {
+  best = "small"
+  maxsize = 4000000000
+  minsize = 1000000
+  rules = [
+   [ TRUE ]
+   [ "480p" FALSE ]
+  ]
+ }
+ sqlite_filename = "./weerss.sqlite"
+ download_dirname = "./download"
+ tv_dirname = "./TV"
+}
+`
+
+weerss.config=djon.load(weerss.config_default)
+
+weerss.load_config=async function(args)
+{
+	if(args.config)
+	{
+		if( fs.existsSync(args.config) ) // only load if files exists
+		{
+			console.log(` Loading config from `+args.config)
+			weerss.config=djon.load_file(args.config)
+			
+			let def=djon.load(weerss.config_default)
+			for(let n in def )
+			{
+				if( typeof weerss.config[n] == "undefined" ) // use defaults
+				{
+					weerss.config[n] = def[n]
+				}
+			}
+		}
+		else // reset
+		{
+			weerss.config=djon.load(weerss.config_default)
+		}
+	}
+	for(let n in args ) // set from args
+	{
+		if(n!="_")
+		{
+			weerss.config[n]=args[n]
+		}
+	}
+}
+
+weerss.save_config=async function(args)
+{
+	if( args._[1] )
+	{
+		let fname=args._[1]
+		console.log(` Saving config to `+fname)
+		if(args.config) // loading a config
+		{
+			djon.save_file(fname,weerss.config,"djon","strict")
+		}
+		else // save default
+		{
+			fs.writeFileSync( fname , weerss.config_default )
+		}
+		return
+	}
+
+	console.log( djon.save(weerss.config,"djon","strict") )
+}
+
+weerss.get_config_path=function(name)
+{
+	let d
+	if( weerss.config.config ) // relative to config path
+	{
+		d=path.dirname( path.resolve(weerss.config.config) )
+	}
+	else
+	{
+		d=path.resolve( "." )
+	}
+
+	let f=weerss.config[name] || "."
+	if( ! f.startsWith("/" ) )
+	{
+		f=path.join( d , f )
+	}
+	
+	return f
+}
+
+//console.log( djon.save(weerss.config) )
+
+
+let item_to_string=function(item)
+{
+	let torrent=item.torrent || {}
+	let show=item.show || {}
+	let tvmaze=show.tvmaze || {}
+	let siz=Math.floor((torrent.file_length||0)/(1024*1024)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")+".MB"
+	let SxxExx=("S"+(show.season||0).toString().padStart(2, "0")+"E"+(show.episode||0).toString().padStart(2, "0") )
+	return ( siz.padStart(9, " ")+" "+(tvmaze.name||torrent.file_name||item.uuid)+" "+SxxExx)
+}
+
+weerss.fetch=async function()
+{
+	await db.setup()
+//	db.clear("hoard") // delete cache on startup
+
+	for(let feed of await db.list("feeds") )
+	{
+		let keep=false
+		for(let url of weerss.config.feeds)
+		{
+			if(url==feed.url)
+			{
+				keep=true
+			}
+		}
+		if(!keep)
+		{
+			console.log("removing old feed",feed.url)
+			await db.delete("feeds",feed.url)
+		}
+	}
+
+
+	for(let url of weerss.config.feeds)
+	{
+		await feeds.add({url:url})
+	}
+	await feeds.fetch_all()
+
+	{
+		let its=await db.list("items",{torrent_is_null:1})
+		console.log("Checking torrents : "+its.length)
+		for(let item of its)
+		{
+			console.log(item.uuid)
+			await torrents.fill_torrent(item)
+			console.log(item.torrent)
+			items.set(item)
+		} 
+	}
+  
+	{
+		let its=await db.list("items",{show_is_null:1,torrent_is_not_null:1})
+		console.log("Checking shows : "+its.length)
+		for(let item of its)
+		{
+			await shows.fill_show(item)
+
+			console.log( item_to_string(item) )
+
+			items.set(item)
+		} 
+	}
+
+	await db.close()
+}
+
+weerss.getlist=async function()
+{
+	// all items then we sort and filter and list
+	let its=await db.list("items",{})
+	
+	let buckets={}
+	let itemshows={}
+	
+	for(let item of its)
+	{
+		if(!item.show) { continue }
+//		if(!item.show.tvmaze) { continue }
+		if(item.show.fail) { continue }
+
+//		let bid=item.show.id+"_"+item.show.season+"_"+item.show.episode
+
+		let SxxExx=("S"+item.show.season.toString().padStart(2, "0")+"E"+item.show.episode.toString().padStart(2, "0") )
+
+		if(!buckets[item.show.id]){buckets[item.show.id]={}}
+		if(!buckets[item.show.id][SxxExx]){buckets[item.show.id][SxxExx]=[]}		
+
+		buckets[item.show.id][SxxExx].push(item)
+
+		itemshows[item.show.id] = item.show
+	}
+	
+	let list=[]
+	for( let showid in itemshows )
+	{
+		let show=itemshows[showid]
+		
+		if( show.tvmaze )
+		{
+			if( ! shows.good_show(show,weerss.config.show.rules) ) // skip this show?
+			{
+				continue
+			}
+//			console.log("SHOW : "+show.tvmaze.name+" + "+(show.tvmaze.type+" "+show.tvmaze.genres.join(" ")).toLowerCase() )
+
+			for( let SxxExx in buckets[showid] )
+			{
+				let bucket=buckets[showid][SxxExx]
+//				console.log( SxxExx + " x " + bucket.length )
+				if( weerss.config.episode.best == "small" )
+				{
+					bucket.sort(function(a,b){
+						return a.torrent.file_length - b.torrent.file_length
+					})
+				}
+				else
+				if( weerss.config.episode.best == "large" )
+				{
+					bucket.sort(function(a,b){
+						return b.torrent.file_length - a.torrent.file_length
+					})
+				}
+				else
+				{
+					error("unknown config.episode.best option")
+				}
+				
+				while( bucket.length>0 ) // be real picky about size
+				{
+					if( bucket[ bucket.length-1 ].torrent.file_length > weerss.config.episode.maxsize ) // 3GB
+					{
+						bucket.pop()
+					}
+					else
+					if( bucket[ 0 ].torrent.file_length < weerss.config.episode.minsize ) // 3GB
+					{
+						bucket.shift()
+					}
+					else
+					{
+						break
+					}
+				}
+				while( bucket.length>0 ) // check episode flags
+				{
+					if( ! shows.good_episode(bucket[ 0 ].show,weerss.config.episode.rules) ) // skip this episode?
+					{
+						bucket.shift() // remove
+					}
+					else
+					{
+						break
+					}
+				}
+//				console.log(aa.join(" "))
+//				console.log(bucket[0].show.tags.join(" ") + " : " + Math.floor(bucket[0].torrent.file_length/(1024*1024)) )
+				if( bucket[0] )
+				{
+					list.push( bucket[0] )
+				}
+			}
+		}
+		else
+		{
+//			console.log("UNKNOWN : "+show.name)
+		}
+	}
+	list.sort( function(a,b){
+		return new Date(b.date) - new Date(a.date)
+	})
+	return list
+}
+
+weerss.list=async function(args)
+{
+	await db.setup()
+
+	let list=(await weerss.getlist())
+	for(let item of list)
+	{
+		console.log( item_to_string(item))
+	}
+
+	await db.close()
+}
+
+weerss.save_rss=async function(args)
+{
+	await db.setup()
+
+	let dates=(new Date()).toUTCString()
+	let rss_items=[]
+	let dat={
+  "/rss@version" : "2.0" ,
+  "/rss/channel/language" : "en-us" ,
+  "/rss/channel/lastBuildDate" : dates ,
+  "/rss/channel/pubDate" : dates ,
+  "/rss/channel/description" : "RERSS" ,
+  "/rss/channel/generator" : "RERSS" ,
+  "/rss/channel/link" : "RERSS" ,
+  "/rss/channel/title" : "RERSS" ,
+  "/rss/channel/item" : rss_items ,
+}
+
+	let push_item=function(item)
+	{
+		if(!item.torrent) { return }
+
+		let url=item.torrent.torrent_name
+
+		let dates=(new Date(item.date)).toUTCString()
+		let isodates=(new Date(item.date)).toISOString()
+		
+		let it={
+"/guid" : url ,
+"/link" : url ,
+"/pubDate" : dates ,
+"/size" : item.torrent.torrent_length ,
+"/title" : item_to_string(item) ,
+"/description" : item_to_string(item) ,
+"/enclosure" : [
+ {
+  "@length" : item.torrent.torrent_length ,
+  "@type" : "application/x-bittorrent" ,
+  "@url" : url
+ }
+] ,
+}
+		rss_items.push(it)
+	}
+
+	let list=(await weerss.getlist(weerss.config.show.rules)).slice(0,100)
+	for(let item of list)
+	{
+		push_item(item)
+	}
+
+
+	if( args._[1] )
+	{
+		let fname=args._[1]
+		console.log(` Saving rss to `+fname)
+
+		fs.writeFileSync( fname , jxml.build_xml(dat) )
+	}
+	else
+	{
+		process.stdout.write( jxml.build_xml(dat) )
+	}
+
+	await db.close()
+}
+
+
+weerss.move=async function(args)
+{
+	
+	let from=weerss.get_config_path("download_dirname") //args._[2] // optional dest dir
+	let dest=weerss.get_config_path("tv_dirname") //args._[2] // optional dest dir
+	
+	dest=null // do not move
+	
+	if(dest)
+	{
+		console.log( "Moving file from "+from+" to "+dest )
+	}
+	else
+	{
+		console.log( "Testing moving files from "+from )
+	}
+	
+	await db.setup()
+	
+	let getallfiles=function(dir, a)
+	{
+		a = a || []
+		let aa = fs.readdirSync(dir)
+		aa.forEach(
+			function(file)
+			{
+				if (fs.statSync(dir + "/" + file).isDirectory())
+				{
+					a = getallfiles(dir + "/" + file, a)
+				}
+				else
+				{
+					a.push(path.join(dir, "/", file))
+				}
+			}
+		)
+		return a
+	}
+
+	let files=getallfiles( from )
+
+	let exts={}
+	for( let e of ["mov","avi","mp4","wmv","webm","flv","mkv","vob","ogv","mpg","mpeg"] )
+	{ exts["."+e]=true }
+
+	for( let file of files )
+	{
+		try{ // continue if we get file errors?
+			
+			let ext=path.extname(file).toLowerCase()
+			let base=path.basename(file)
+			if( exts[ext] )
+			{
+				let show=await shows.get_show(base+ext)
+				if( show )
+				{
+					let xtra=""
+					if(show.year)
+					{
+						xtra=xtra+" ("+show.year+")"
+					}
+
+					let SxxExx=("S"+show.season.toString().padStart(2, "0")+"E"+show.episode.toString().padStart(2, "0") )
+
+	//				console.log(base , show.tvmaze.name , show.season , show.episode)
+					let showname=show.tvmaze.name.replace(/[/\\?%*:|"<>]/g, "-") // remove problematic chars
+					let to = showname+xtra+"/Season "+show.season+"/"+showname+" "+SxxExx+ext
+					console.log(file)
+					
+					if( dest )
+					{
+						to=path.join(dest , to)
+						await moveFile(file,to)
+						console.log("\t"+to)
+					}
+					else
+					{
+						console.log("\t"+to)
+					}
+				}
+			}
+
+		}catch(e){console.log(e)}
+	}
+
+
+
+	await db.close()
+}
+
+
+weerss.dirs=async function(args)
+{	
+	let dest=weerss.get_config_path("tv_dirname") 
+
+	
+	await db.setup()
+	
+	let getdirs=function(dir, a)
+	{
+		a = a || []
+		let aa = fs.readdirSync(dir)
+		aa.forEach(
+			function(file)
+			{
+				if (fs.statSync(dir + "/" + file).isDirectory())
+				{
+					a.push(path.join(file))
+				}
+			}
+		)
+		return a
+	}
+
+	let files=getdirs(dest)
+
+	for( let file of files )
+	{
+//		if( ! file.match(/\((\d\d\d\d)\)/) ) { continue }
+
+		try{ // continue if we get file errors?
+			
+			let escfile=`'${file.replace(/'/g, `'\\''`)}'`
+			
+//			console.log(file)
+			let show={
+				name:shows.clean_name(file),
+				tags:[],
+				season:0,
+				episode:0,
+			}
+			await shows.get_tvmaze(show,true)
+
+//			console.log(show.tvmaze)
+			console.log(`echo ${escfile}`)
+			if( show.tvmaze )
+			{
+				let tvname=sanitize(show.tvmaze.name)
+				let year=file.match(/\((\d\d\d\d)\)/);
+				year=year && year[1]
+				if(year)
+				{
+					tvname=tvname+" ("+year+")" // keep year in dirname
+				}
+				let esctvname=`'${tvname.replace(/'/g, `'\\''`)}'`
+				let good=shows.good_show(show,weerss.config.show.rules)
+				if(good)
+				{
+					if(file!=tvname)
+					{
+						console.log(`cp -rl ${escfile} ${esctvname}`)
+						console.log(`rm -rf ${escfile}`)
+					}
+				}
+				else
+				{
+					console.log(`rm -rf ${escfile}`)
+				}
+			}
+			else
+			{
+				console.log(`rm -rf ${escfile}`)
+			}
+			
+			await new Promise(resolve => setTimeout(resolve, 500))
+
+		}catch(e){console.log(e)}
+	}
+
+
+
+	await db.close()
+}
