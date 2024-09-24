@@ -29,7 +29,7 @@ db.name="weerss"
 db.setup=async function()
 {
 
-	db.handle = await AsyncDatabase.open( weerss.get_config_path("sqlite_filename") );
+	db.handle = await AsyncDatabase.open( weerss.get_config_path("sqlite") );
 
 //	db.handle.inner.on("trace", (sql) => console.log("[TRACE]", sql));
 

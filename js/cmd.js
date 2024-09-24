@@ -3,7 +3,7 @@ const cmd={}
 export default cmd
 
 
-import minimist from "minimist"
+import mri from "mri"
 
 import path from "path"
 import url from "url"
@@ -17,14 +17,16 @@ import items from "./items.js"
 
 import weerss from "./weerss.js"
 
-const args = minimist(process.argv.slice(2),{boolean:true})
+const args = mri(process.argv.slice(2))
+//console.log(args)
 
-args.config=args.config || process.env.WEERSS_CONFIG
+args.config=args.config || process.env.WEERSS_CONFIG || process.env.HOME+"/.config/weerss/config.djon"
 
 await weerss.load_config(args)
 
 let arg1=args._[0] || "help"
 let arg2=args._[1]
+let arg3=args._[3]
 
 if( arg1=="help" )
 {
@@ -42,30 +44,48 @@ options:
 
 		export WEERSS_CONFIG=/home/dave/weerss.config
 
+All options are loaded into this config structure with . used as an 
+object seperator and the value parsed as json.
+
+EG To choose the number of items in your rss feed from the command line 
+and thus overide the config file setting.
+
+	--rss.length=100
+or
+	--rss='{length:100}'
+
+With the later removing any other values in the rss object while the 
+former just changes the legth value.
+
 commands:
 
-tvrss config
-	Print current config.
+weerss config
+	Create a default to config file if we do not already have one and 
+	then print the current config. I recomend reading the default 
+	config file for comments about how to configure weerss.
 
-tvrss config FILENAME
-	Save current (default?) config to FILENAME.
+weerss config --force
+	Force saving of default config over current config.
 
-tvrss fetch
+weerss fetch
 	Fetch all feeds and scan files with tvmaze.
 
-tvrss list
+weerss list
 	List torrents in db.
 
-tvrss rss
+weerss rss
 	Save torrents as rss.
 
-tvrss move
-	Move downloaded chaotic files to an organised location.
+weerss move
+	Move downloaded chaotic files to an organised jellyfin style 
+	directory.
 
-tvrss dirs
-	Create a script to cleanup TV dirs using tvmaze.
+weerss dirs
+	Create a script to cleanup TV dirs using tvmaze. This does not do 
+	any cleanup just prints bash commands that you may wish to run 
+	later.
 
-tvrss help
+weerss help
 	Print this help message.
 
 `)

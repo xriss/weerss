@@ -17,11 +17,11 @@ import shows from "./shows.js"
 import util from "util"
 import {moveFile} from 'move-file'
 
+import { promises as pfs } from "fs"
 import fs from "fs"
 import path from "path"
 
 import sanitize from "sanitize-filename"
-
 
 import djon from "@xriss/djon"
 
@@ -29,19 +29,24 @@ import djon from "@xriss/djon"
 
 weerss.config_default=`
 {
+ // set to true for verbose rule checking
  debug = FALSE
+ // array of url to rss feeds of torrent files
  feeds = [
   "https://archive.org/services/collection-rss.php?collection=television_inbox"
  ]
  rss = {
+  // number of episodes to list in the rss files
   length = 100
  }
+ // decide which shows we like ( data from tvmaze ) 
  show = {
   rules = [
    [ TRUE ]
    [ "!english" FALSE ]
   ]
  }
+ // decide which episode we like tags come from filename 
  episode = {
   best = "small"
   maxsize = 4000000000
@@ -51,9 +56,13 @@ weerss.config_default=`
    [ "480p" FALSE ]
   ]
  }
- sqlite_filename = "./weerss.sqlite"
- download_dirname = "./download"
- tv_dirname = "./TV"
+ // paths can be relative to this config files location
+ paths = {
+  rss = "./weerss.rss"
+  sqlite = "./weerss.sqlite"
+  download = "./download"
+  tv = "./TV"
+ }
 }
 `
 
@@ -86,29 +95,37 @@ weerss.load_config=async function(args)
 	{
 		if(n!="_")
 		{
-			weerss.config[n]=args[n]
+			let va=args[n]
+			try{ va=djon.load(va) }catch(e){} // if can parse
+			let ns=n.split(".")
+			let f=ns.pop()
+			let b=weerss.config
+			for( let v of ns ) { b=b[v] } // sub sets
+			b[f]=va
 		}
 	}
 }
 
 weerss.save_config=async function(args)
 {
-	if( args._[1] )
+	if(args.config) // need a config location
 	{
-		let fname=args._[1]
-		console.log(` Saving config to `+fname)
-		if(args.config) // loading a config
+		if( (!args.force) && fs.existsSync(args.config) ) // must not already exist
 		{
-			djon.save_file(fname,weerss.config,"djon","strict")
+			console.log( "Config already exists : "+args.config )
+			console.log( djon.save(weerss.config,"djon","strict") )
 		}
-		else // save default
+		else // write defaukt config
 		{
-			fs.writeFileSync( fname , weerss.config_default )
+			console.log( "Writing config to : "+args.config )
+			try{ await pfs.mkdir( path.dirname(args.config) ) }catch(e){}
+			fs.writeFileSync( args.config , weerss.config_default )
 		}
-		return
 	}
-
-	console.log( djon.save(weerss.config,"djon","strict") )
+	else
+	{
+		console.log( "Must specify config file with --config=~/.weerss.config " )
+	}
 }
 
 weerss.get_config_path=function(name)
@@ -123,8 +140,8 @@ weerss.get_config_path=function(name)
 		d=path.resolve( "." )
 	}
 
-	let f=weerss.config[name] || "."
-	if( ! f.startsWith("/" ) )
+	let f=weerss.config.paths[name] || "."
+	if( ! path.isAbsolute(f) )
 	{
 		f=path.join( d , f )
 	}
@@ -313,7 +330,7 @@ weerss.list=async function(args)
 {
 	await db.setup()
 
-	let list=(await weerss.getlist())
+	let list=(await weerss.getlist()).slice(0,weerss.config.rss.length)
 	for(let item of list)
 	{
 		console.log( item_to_string(item))
@@ -367,16 +384,16 @@ weerss.save_rss=async function(args)
 		rss_items.push(it)
 	}
 
-	let list=(await weerss.getlist(weerss.config.show.rules)).slice(0,100)
+	let list=(await weerss.getlist(weerss.config.show.rules)).slice(0,weerss.config.rss.length)
 	for(let item of list)
 	{
 		push_item(item)
 	}
 
 
-	if( args._[1] )
+	let fname=weerss.get_config_path("rss")
+	if( fname )
 	{
-		let fname=args._[1]
 		console.log(` Saving rss to `+fname)
 
 		fs.writeFileSync( fname , jxml.build_xml(dat) )
@@ -393,8 +410,8 @@ weerss.save_rss=async function(args)
 weerss.move=async function(args)
 {
 	
-	let from=weerss.get_config_path("download_dirname") //args._[2] // optional dest dir
-	let dest=weerss.get_config_path("tv_dirname") //args._[2] // optional dest dir
+	let from=weerss.get_config_path("download") //args._[2] // optional dest dir
+	let dest=weerss.get_config_path("tv") //args._[2] // optional dest dir
 	
 	dest=null // do not move
 	
@@ -483,7 +500,7 @@ weerss.move=async function(args)
 
 weerss.dirs=async function(args)
 {	
-	let dest=weerss.get_config_path("tv_dirname") 
+	let dest=weerss.get_config_path("tv") 
 
 	
 	await db.setup()

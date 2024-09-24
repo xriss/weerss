@@ -17,8 +17,8 @@
 	"dependencies": {
 		"@xriss/djon": "^0.0.14",
 		"express": "^4.19.2",
-		"minimist": "^1.2.8",
 		"move-file": "^3.1.0",
+		"mri": "^1.2.0",
 		"parse-torrent": "^11.0.17",
 		"path-browserify": "^1.0.1",
 		"promised-sqlite3": "^2.1.0",
