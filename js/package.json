@@ -29,7 +29,8 @@
 		"sqlite3": "^5.1.7",
 		"stream-browserify": "^3.0.0",
 		"webpack": "^5.94.0",
-		"webtorrent": "^2.5.1"
+		"webtorrent": "^2.5.1",
+		"wtfnode": "^0.9.3"
 	},
 	"devDependencies": {
 		"webpack-cli": "^5.1.4"

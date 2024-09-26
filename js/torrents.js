@@ -87,17 +87,27 @@ torrents.fetch=async function(url)
 	{
 		data.files=[]
 //		console.log(data)
-		let torrent=await torrent_magnet_add(urlplus)
-		data.length=torrent.length
-//		console.log(data.files)
-		for( let ff of torrent.files )
+
+		let timeout_id
+		let torrent=await Promise.race([
+			torrent_magnet_add(urlplus),
+			new Promise(function(_, reject){ timeout_id=setTimeout(function(){reject("timeout")}, 10*1000) } ),
+		])
+		if(timeout_id) { clearTimeout(timeout_id) }
+		
+		if(torrent)
 		{
-			let f={}
-			f.name=ff.name
-			f.length=ff.length
-			data.files.push(f)
+			data.length=torrent.length
+	//		console.log(data.files)
+			for( let ff of torrent.files )
+			{
+				let f={}
+				f.name=ff.name
+				f.length=ff.length
+				data.files.push(f)
+			}
+			torrent.destroy()
 		}
-		torrent.destroy()
 		if(client)
 		{
 			if(!client.destroyed){client.destroy()}

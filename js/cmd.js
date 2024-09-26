@@ -2,6 +2,7 @@
 const cmd={}
 export default cmd
 
+import wtf from 'wtfnode'
 
 import mri from "mri"
 
@@ -98,6 +99,7 @@ if( arg1=="config" )
 else
 if( arg1=="fetch" )
 {
+	args.wtf=true // torrents are a problem so force exit afterwards
 	await weerss.fetch(args)
 }
 else
@@ -123,4 +125,11 @@ if( arg1=="dirs" )
 else
 {
 	console.log(` Unknown weerss command "${arg1}" `)
+}
+
+if(args.wtf)
+{
+	console.log(` Forcing exit `)	
+	wtf.dump()
+	process.exit(0)
 }
