@@ -4,9 +4,12 @@ let torrents={}
 export default torrents
 
 
-import      db        from "./db.js"
+import db from "./db.js"
+import hoard from "./hoard.js"
 
+import WebTorrent from 'webtorrent'
 import { remote } from 'parse-torrent'
+import memchunks from 'memory-chunk-store'
 
 
 
@@ -27,15 +30,80 @@ torrents.fetch=async function(url)
 	let ret = await torrents.get(url)
 	if( ret && ret.data) { return ret.data }
 	
-	let torrent_parse=function(torrent) {
+	let urlplus=url
+	if(urlplus.toLowerCase().startsWith("magnet:")) // auto add trackers
+	{
+		let trackers=(await hoard.fast_text("https://newtrackon.com/api/stable")).split("\n")
+		let count=0
+		for(let t of trackers)
+		{
+			t=t.trim()
+			if(t!="")
+			{
+				urlplus=urlplus+"&tr="+encodeURIComponent(t)
+				count=count+1
+				if(count>10){break}
+			}
+		}
+	}
+//	console.log(urlplus)
+	
+	let torrent_parse=function(url) {
 		return new Promise(function(resolve, reject) {
-			remote(torrent, { timeout: 60 * 1000 }, function(err, parsedTorrent){
+			remote(url, { timeout: 60 * 1000 }, function(err, parsedTorrent){
 				if (err) { reject(err) }
 				resolve(parsedTorrent)
 			})
 		})
 	}
-	let data=await torrent_parse(url) // should work with magnets
+	let data=await torrent_parse(urlplus) // does not work with magnets?
+
+	let client
+	let torrent_magnet_add=async function(url) {
+		return new Promise(function(resolve, reject)
+		{
+			client = new WebTorrent()
+			client.on('error', function(err){ if(!client.destroyed){client.destroy()} ; reject(err) })
+			// download to memory using memchunks
+			let torrent=client.add(url, {store:memchunks} , function(torrent){
+				resolve(torrent)
+			})
+			torrent.on('error', function(err){ if(!client.destroyed){client.destroy()} ; reject(err) })
+			torrent.on('noPeers', function(err){ if(!client.destroyed){client.destroy()} ; reject(err) })
+/*
+			for(let n of [
+				"infoHash" , "metadata" , "ready" , "warning" ,
+				"error" , "done" , "download" , "upload" ,
+				"wire" , "noPeers" , "verified"
+			])
+			{
+				torrent.on(n, function(d){ console.log(n,d) })
+			}
+*/
+		})
+	}
+	
+	if(!data.files) // need to magnet?
+	{
+		data.files=[]
+//		console.log(data)
+		let torrent=await torrent_magnet_add(urlplus)
+		data.length=torrent.length
+//		console.log(data.files)
+		for( let ff of torrent.files )
+		{
+			let f={}
+			f.name=ff.name
+			f.length=ff.length
+			data.files.push(f)
+		}
+		torrent.destroy()
+		if(client)
+		{
+			if(!client.destroyed){client.destroy()}
+			client=undefined
+		}
+	}
 
 	if(data)
 	{
@@ -91,7 +159,7 @@ torrents.fill_torrent=async function(item)
 		if( torrent ) // did we get something
 		{
 			item.torrent={fail:true}
-			
+						
 			for(let file of torrent.files)
 			{
 				let pct=Math.floor(100*file.length/torrent.length)

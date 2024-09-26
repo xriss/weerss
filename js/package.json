@@ -17,6 +17,7 @@
 	"dependencies": {
 		"@xriss/djon": "^0.0.14",
 		"express": "^4.19.2",
+		"memory-chunk-store": "^1.3.5",
 		"move-file": "^3.1.0",
 		"mri": "^1.2.0",
 		"parse-torrent": "^11.0.17",
@@ -27,7 +28,8 @@
 		"sax": "^1.4.1",
 		"sqlite3": "^5.1.7",
 		"stream-browserify": "^3.0.0",
-		"webpack": "^5.94.0"
+		"webpack": "^5.94.0",
+		"webtorrent": "^2.5.1"
 	},
 	"devDependencies": {
 		"webpack-cli": "^5.1.4"
