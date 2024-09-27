@@ -167,6 +167,10 @@ weerss.fetch=async function()
 	await db.setup()
 //	db.clear("hoard") // delete cache on startup
 
+// clear cached data
+	db.clear("torrents")
+	db.clear("hoard")
+
 	for(let feed of await db.list("feeds") )
 	{
 		let keep=false
@@ -350,10 +354,10 @@ weerss.save_rss=async function(args)
   "/rss/channel/language" : "en-us" ,
   "/rss/channel/lastBuildDate" : dates ,
   "/rss/channel/pubDate" : dates ,
-  "/rss/channel/description" : "RERSS" ,
-  "/rss/channel/generator" : "RERSS" ,
-  "/rss/channel/link" : "RERSS" ,
-  "/rss/channel/title" : "RERSS" ,
+  "/rss/channel/description" : "WEERSS" ,
+  "/rss/channel/generator" : "WEERSS" ,
+  "/rss/channel/link" : "WEERSS" ,
+  "/rss/channel/title" : "WEERSS" ,
   "/rss/channel/item" : rss_items ,
 }
 
