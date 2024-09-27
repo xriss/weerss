@@ -144,6 +144,12 @@ db.clear=async function(table)
 		DELETE FROM ${table};
 
 	`,{})
+
+	await db.handle.run(`
+
+		VACUUM;
+
+	`,{})
 }
 
 db.delete=async function(table,key)
