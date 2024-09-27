@@ -220,6 +220,8 @@ weerss.fetch=async function()
 		} 
 	}
 
+
+//	await db.vacuum() // keep db size small?
 	await db.close()
 }
 

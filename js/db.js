@@ -145,6 +145,10 @@ db.clear=async function(table)
 
 	`,{})
 
+}
+
+db.vacuum=async function()
+{
 	await db.handle.run(`
 
 		VACUUM;
