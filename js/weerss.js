@@ -419,8 +419,6 @@ weerss.move=async function(args)
 	let from=weerss.get_config_path("download") //args._[2] // optional dest dir
 	let dest=weerss.get_config_path("tv") //args._[2] // optional dest dir
 	
-	dest=null // do not move
-	
 	if(dest)
 	{
 		console.log( "Moving file from "+from+" to "+dest )
