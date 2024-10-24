@@ -16,6 +16,7 @@ import weerss from "./weerss.js"
 // cleanup a file name as best we can to be used in search
 shows.clean_name=function(name)
 {
+	name=name.replace(/\s*\[.*?\]\s*/g, ' ') // remove any [tags]
 	return name.replace(/'|’/g,"").replace(/[^a-zA-Z0-9]/g," ").replace(/\s+/g," ").trim().toLowerCase()
 }
 
@@ -54,9 +55,28 @@ shows.prepare=function(show)
 }
 
 
+// lookup show episode on tvmaze, this needs a valid tvmaze id
+shows.get_tvmaze_episode=async function(showid,season,episode)
+{
+	await new Promise(resolve => setTimeout(resolve, 500)) // do not spam requests
+
+	let ret=null
+	
+	try{ // on network errors, just return nil
+
+		let qurl="https://api.tvmaze.com/shows/"+showid+"/episodebynumber?season="+season+"&number="+episode
+		let text=await hoard.fetch_text(qurl)
+		ret=JSON.parse(text)
+	}catch(e){console.log(e)}
+
+	return ret
+}
+
 // lookup show on tvmaze
 shows.get_tvmaze=async function(show,force)
 {
+	await new Promise(resolve => setTimeout(resolve, 500)) // do not spam requests
+
 	try{ // on network errors, just return non tvmaze info
 
 		let show_year
@@ -115,6 +135,7 @@ shows.get_show=async function(filename)
 	let item_name
 	let item_season
 	let item_episode
+	let item_date
 	
 	let name=filename
 	if(!name){return} // give up
@@ -141,6 +162,7 @@ shows.get_show=async function(filename)
 			item_season=Number(aa[2]) // season is the year
 			item_episode=Number(aa[3]+aa[4]) // join month and day to make a 4 digit episode number
 			item_tags=aa[5].replace(/[^a-zA-Z0-9]/g," ").replace(/\s+/g," ").trim().toLowerCase().split(" ")
+			item_date=aa[2]+"-"+aa[3]+"-"+aa[4]
 		}
 	}
 	
@@ -151,6 +173,7 @@ shows.get_show=async function(filename)
 		tags:item_tags,
 		season:item_season,
 		episode:item_episode,
+		date:item_date,
 	}
 	
 	await shows.get_tvmaze(show)
@@ -163,6 +186,17 @@ shows.fill_show=async function(item)
 {	
 
 	item.show=await shows.get_show(item.torrent.file_name)	
+	if( (item.show) && (item.show.tvmaze) )
+	{
+		if( !item.show.date ) // need a date so ask tvmaze
+		{
+			item.tvmaze_episode=await shows.get_tvmaze_episode( item.show.id , item.show.season , item.show.episode )
+			if( item.tvmaze_episode )
+			{
+				item.show.date=item.tvmaze_episode.airdate
+			}
+		}
+	}
 	
 	item.show=item.show||{fail:true}
 

@@ -159,7 +159,8 @@ let item_to_string=function(item)
 	let tvmaze=show.tvmaze || {}
 	let siz=Math.floor((torrent.file_length||0)/(1024*1024)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")+".MB"
 	let SxxExx=("S"+(show.season||0).toString().padStart(2, "0")+"E"+(show.episode||0).toString().padStart(2, "0") )
-	return ( siz.padStart(9, " ")+" "+(tvmaze.name||torrent.file_name||item.uuid)+" "+SxxExx)
+	let airdate=show.date || ""
+	return ( siz.padStart(9, " ")+" "+(tvmaze.name||torrent.file_name||item.uuid)+" "+SxxExx+" "+airdate)
 }
 
 weerss.fetch=async function()
@@ -268,6 +269,26 @@ weerss.getlist=async function()
 			{
 				let bucket=buckets[showid][SxxExx]
 //				console.log( SxxExx + " x " + bucket.length )
+
+				if( weerss.config.episode.maxage )
+				{
+					for( let it of bucket )
+					{
+						if( (it.show) && (it.show.date) ) // check all for first episode we find with valid date
+						{
+							let now=(new Date()).getTime()
+							let test=Date.parse(it.show.date)
+							let days=Math.floor((now-test)/(1000*60*60*24))
+							if( days > weerss.config.episode.maxage ) // this episode is too old
+							{
+								while( bucket.length > 0){ bucket.pop() } // empty array
+							}
+							break;
+						}
+					}
+				}
+
+
 				if( weerss.config.episode.best == "small" )
 				{
 					bucket.sort(function(a,b){
