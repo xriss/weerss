@@ -41,6 +41,7 @@ shows.fetch=async function(url,force)
 	}
 	
 	let data = await fetch(url).then(res => res.json())
+	data=data && data[0] && data[0].show // get first item from array returned from search
 	if(data)
 	{
 		await shows.set({url:url,data:data})
@@ -75,14 +76,14 @@ shows.get_tvmaze_episode=async function(showid,season,episode)
 // lookup show on tvmaze
 shows.get_tvmaze=async function(show,force)
 {
-	await new Promise(resolve => setTimeout(resolve, 500)) // do not spam requests
 
 	try{ // on network errors, just return non tvmaze info
 
 		let show_year
 		let show_country
 		let show_name=show.name
-		let qurl="https://api.tvmaze.com/singlesearch/shows?q="+show_name.replaceAll(" ","+")
+		let qurl="https://api.tvmaze.com/search/shows?q="+show_name.replaceAll(" ","+")
+		await new Promise(resolve => setTimeout(resolve, 500)) // do not spam requests
 		let tvmaze=await shows.fetch(qurl,force)
 
 		if(!tvmaze) // maybe try again
@@ -91,7 +92,8 @@ shows.get_tvmaze=async function(show,force)
 			{
 				show_year=show_name.substring(show_name.length-4)
 				show_name=show_name.substring(0,show_name.length-5)
-				qurl="https://api.tvmaze.com/singlesearch/shows?q="+show_name.replaceAll(" ","+")
+				qurl="https://api.tvmaze.com/search/shows?q="+show_name.replaceAll(" ","+")
+				await new Promise(resolve => setTimeout(resolve, 500)) // do not spam requests
 				tvmaze=await shows.fetch(qurl,force)
 				if(tvmaze)
 				{
@@ -106,7 +108,8 @@ shows.get_tvmaze=async function(show,force)
 			{
 				show_country=show_name.substring(show_name.length-2)
 				show_name=show_name.substring(0,show_name.length-3)
-				qurl="https://api.tvmaze.com/singlesearch/shows?q="+show_name.replaceAll(" ","+")
+				qurl="https://api.tvmaze.com/search/shows?q="+show_name.replaceAll(" ","+")
+				await new Promise(resolve => setTimeout(resolve, 500)) // do not spam requests
 				tvmaze=await shows.fetch(qurl,force)
 				if(tvmaze)
 				{
