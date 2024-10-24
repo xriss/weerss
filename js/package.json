@@ -1,6 +1,6 @@
 {
 	"name": "@xriss/weerss",
-	"version": "0.0.11",
+	"version": "0.0.12",
 	"source": "weerss.js",
 	"type": "module",
 	"repository": {
