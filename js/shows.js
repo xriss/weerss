@@ -82,7 +82,7 @@ shows.get_tvmaze=async function(show,force)
 		let show_year
 		let show_country
 		let show_name=show.name
-		let qurl="https://api.tvmaze.com/search/shows?q="+show_name.replaceAll(" ","+")
+		let qurl="https://api.tvmaze.com/search/shows?q="+show_name.replaceAll(" ","%20")
 		await new Promise(resolve => setTimeout(resolve, 500)) // do not spam requests
 		let tvmaze=await shows.fetch(qurl,force)
 
@@ -92,7 +92,7 @@ shows.get_tvmaze=async function(show,force)
 			{
 				show_year=show_name.substring(show_name.length-4)
 				show_name=show_name.substring(0,show_name.length-5)
-				qurl="https://api.tvmaze.com/search/shows?q="+show_name.replaceAll(" ","+")
+				qurl="https://api.tvmaze.com/search/shows?q="+show_name.replaceAll(" ","%20")
 				await new Promise(resolve => setTimeout(resolve, 500)) // do not spam requests
 				tvmaze=await shows.fetch(qurl,force)
 				if(tvmaze)
@@ -108,7 +108,7 @@ shows.get_tvmaze=async function(show,force)
 			{
 				show_country=show_name.substring(show_name.length-2)
 				show_name=show_name.substring(0,show_name.length-3)
-				qurl="https://api.tvmaze.com/search/shows?q="+show_name.replaceAll(" ","+")
+				qurl="https://api.tvmaze.com/search/shows?q="+show_name.replaceAll(" ","%20")
 				await new Promise(resolve => setTimeout(resolve, 500)) // do not spam requests
 				tvmaze=await shows.fetch(qurl,force)
 				if(tvmaze)
