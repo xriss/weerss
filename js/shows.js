@@ -142,6 +142,8 @@ shows.get_show=async function(filename)
 	
 	let name=filename
 	if(!name){return} // give up
+
+	item_tags=name.replace(/[^a-zA-Z0-9]/g," ").replace(/\s+/g," ").trim().toLowerCase().split(" ")
 	
 	if(!item_name)
 	{
@@ -151,7 +153,6 @@ shows.get_show=async function(filename)
 			item_name=shows.clean_name(aa[1])
 			item_season=Number(aa[2])
 			item_episode=Number(aa[3])
-			item_tags=shows.clean_name(aa[4]).split(" ")
 		}
 	}
 
@@ -164,7 +165,6 @@ shows.get_show=async function(filename)
 			item_name=aa[1].replace(/[^a-zA-Z0-9]/g," ").replace(/\s+/g," ").trim().toLowerCase()
 			item_season=Number(aa[2]) // season is the year
 			item_episode=Number(aa[3]+aa[4]) // join month and day to make a 4 digit episode number
-			item_tags=aa[5].replace(/[^a-zA-Z0-9]/g," ").replace(/\s+/g," ").trim().toLowerCase().split(" ")
 			item_date=aa[2]+"-"+aa[3]+"-"+aa[4]
 		}
 	}
@@ -276,7 +276,17 @@ shows.good_episode=function(show,rules)
 {
 	if( !rules ) { return true }
 
+	let tvmaze=show.tvmaze||{}
 	let flags={}
+
+	if( tvmaze.language ) { flags[ tvmaze.language.trim().toLowerCase() ]=true }
+	if( tvmaze.type     ) { flags[ tvmaze.type.trim().toLowerCase()     ]=true }
+	if( tvmaze.genres )
+	for( let genre of tvmaze.genres || [] )
+	{
+		flags[ genre.trim().toLowerCase() ]=true
+	}
+
 	for( let tag of show.tags || [] )
 	{
 		flags[ tag.trim().toLowerCase() ]=true

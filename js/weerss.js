@@ -288,6 +288,19 @@ weerss.getlist=async function()
 					}
 				}
 
+				for( let idx=bucket.length-1 ; idx>0 ; idx-- ) // remove huge/small files
+				{
+					if( bucket[ idx ].torrent.file_length > weerss.config.episode.maxsize ) // 3GB
+					{
+						bucket.splice( idx , 1 )
+					}
+
+					if( bucket[ idx ].torrent.file_length < weerss.config.episode.minsize ) // 3GB
+					{
+						bucket.splice( idx , 1 )
+					}
+				}
+
 
 				if( weerss.config.episode.best == "small" )
 				{
@@ -307,23 +320,7 @@ weerss.getlist=async function()
 					error("unknown config.episode.best option")
 				}
 				
-				while( bucket.length>0 ) // be real picky about size
-				{
-					if( bucket[ bucket.length-1 ].torrent.file_length > weerss.config.episode.maxsize ) // 3GB
-					{
-						bucket.pop()
-					}
-					else
-					if( bucket[ 0 ].torrent.file_length < weerss.config.episode.minsize ) // 3GB
-					{
-						bucket.shift()
-					}
-					else
-					{
-						break
-					}
-				}
-				while( bucket.length>0 ) // check episode flags
+				while( bucket.length>0 ) // check episode flags ( uses words from filename + all the show flags )
 				{
 					if( ! shows.good_episode(bucket[ 0 ].show,weerss.config.episode.rules) ) // skip this episode?
 					{

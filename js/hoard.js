@@ -69,7 +69,7 @@ hoard.fetch_text=async function(url,refresh)
 			let timeout_id
 			let res=await Promise.race([
 				fetch(corsurl),
-				new Promise(function(_, reject){ timeout_id=setTimeout(function(){reject("timeout")}, 2*1000) } ),
+				new Promise(function(_, reject){ timeout_id=setTimeout(function(){reject("timeout")}, 10*1000) } ),
 			])
 			if(timeout_id) { clearTimeout(timeout_id) }
 
