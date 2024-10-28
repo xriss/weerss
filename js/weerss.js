@@ -485,17 +485,25 @@ weerss.move=async function(args)
 				let show=await shows.get_show(base+ext)
 				if( show )
 				{
-					let xtra=""
-					if(show.year)
-					{
-						xtra=xtra+" ("+show.year+")"
-					}
-
 					let SxxExx=("S"+show.season.toString().padStart(2, "0")+"E"+show.episode.toString().padStart(2, "0") )
 
 	//				console.log(base , show.tvmaze.name , show.season , show.episode)
-					let showname=show.tvmaze.name.replace(/[/\\?%*:|"<>]/g, "-") // remove problematic chars
-					let to = showname+xtra+"/Season "+show.season+"/"+showname+" "+SxxExx+ext
+//					let showname=show.tvmaze.name.replace(/[/\\?%*:|"<>]/g, "-") // remove problematic chars
+
+					let tvname=sanitize(show.tvmaze.name,{replacement:""})
+					let country=show.tvmaze.network && show.tvmaze.network.country && show.tvmaze.network.country.code
+					let year=show.tvmaze.premiered && show.tvmaze.premiered.substr(0,4)
+					if(country)
+					{
+						tvname=tvname+" ("+country+")" // put country in dirname
+					}
+					if(year)
+					{
+						tvname=tvname+" ("+year+")" // put year in dirname
+					}
+					let esctvname=`'${tvname.replace(/'/g, `'\\''`)}'`
+
+					let to = tvname+"/Season "+show.season+"/"+tvname+" "+SxxExx+ext
 					console.log(file)
 					
 					if( dest )
@@ -566,12 +574,17 @@ weerss.dirs=async function(args)
 			console.log(`echo ${escfile}`)
 			if( show.tvmaze )
 			{
-				let tvname=sanitize(show.tvmaze.name)
-				let year=file.match(/\((\d\d\d\d)\)/);
-				year=year && year[1]
+//console.log(show.tvmaze)
+				let tvname=sanitize(show.tvmaze.name,{replacement:""})
+				let country=show.tvmaze.network && show.tvmaze.network.country && show.tvmaze.network.country.code
+				let year=show.tvmaze.premiered && show.tvmaze.premiered.substr(0,4)
+				if(country)
+				{
+					tvname=tvname+" ("+country+")" // put country in dirname
+				}
 				if(year)
 				{
-					tvname=tvname+" ("+year+")" // keep year in dirname
+					tvname=tvname+" ("+year+")" // put year in dirname
 				}
 				let esctvname=`'${tvname.replace(/'/g, `'\\''`)}'`
 				let good=shows.good_show(show,weerss.config.show.rules)
@@ -593,7 +606,7 @@ weerss.dirs=async function(args)
 				console.log(`rm -rf ${escfile}`)
 			}
 			
-			await new Promise(resolve => setTimeout(resolve, 500))
+//			await new Promise(resolve => setTimeout(resolve, 500))
 
 		}catch(e){console.log(e)}
 	}
