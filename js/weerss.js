@@ -501,10 +501,12 @@ weerss.move=async function(args)
 					let tvname=sanitize(show.tvmaze.name,{replacement:""})
 					let country=show.tvmaze.network && show.tvmaze.network.country && show.tvmaze.network.country.code
 					let year=show.tvmaze.premiered && show.tvmaze.premiered.substr(0,4)
+/*
 					if(country)
 					{
 						tvname=tvname+" ("+country+")" // put country in dirname
 					}
+*/
 					if(year)
 					{
 						tvname=tvname+" ("+year+")" // put year in dirname
@@ -586,10 +588,12 @@ weerss.dirs=async function(args)
 				let tvname=sanitize(show.tvmaze.name,{replacement:""})
 				let country=show.tvmaze.network && show.tvmaze.network.country && show.tvmaze.network.country.code
 				let year=show.tvmaze.premiered && show.tvmaze.premiered.substr(0,4)
+/*
 				if(country)
 				{
 					tvname=tvname+" ("+country+")" // put country in dirname
 				}
+*/
 				if(year)
 				{
 					tvname=tvname+" ("+year+")" // put year in dirname
