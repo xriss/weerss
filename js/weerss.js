@@ -569,7 +569,8 @@ weerss.dirs=async function(args)
 
 		try{ // continue if we get file errors?
 			
-			let escfile=`'${file.replace(/'/g, `'\\''`)}/.'`
+			let escfiles=`'${file.replace(/'/g, `'\\''`)}/.'`
+			let escdir=`'${file.replace(/'/g, `'\\''`)}'`
 			
 //			console.log(file)
 			let show={
@@ -581,7 +582,7 @@ weerss.dirs=async function(args)
 			await shows.get_tvmaze(show,true)
 
 //			console.log(show.tvmaze)
-			console.log(`echo ${escfile}`)
+			console.log(`echo ${escdir}`)
 			if( show.tvmaze )
 			{
 //console.log(show.tvmaze)
@@ -604,18 +605,18 @@ weerss.dirs=async function(args)
 				{
 					if(file!=tvname)
 					{
-						console.log(`cp -rl ${escfile} ${esctvname}`)
-						console.log(`rm -rf ${escfile}`)
+						console.log(`cp -rl ${escfiles} ${esctvname}`)
+						console.log(`rm -rf ${escdir}`)
 					}
 				}
 				else
 				{
-					console.log(`rm -rf ${escfile}`)
+					console.log(`rm -rf ${escdir}`)
 				}
 			}
 			else
 			{
-				console.log(`rm -rf ${escfile}`)
+				console.log(`rm -rf ${escdir}`)
 			}
 			
 //			await new Promise(resolve => setTimeout(resolve, 500))
