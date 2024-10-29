@@ -253,19 +253,31 @@ if(weerss.config.debug)
 }
 
 // is this show good?
-shows.good_show=function(show,rules)
+shows.good_show=function(show,rules,moretags)
 {
 	if( !rules ) { return true }
 	
 	let tvmaze=show.tvmaze||{}
 	
 	let flags={}
+	if( tvmaze.schedule && tvmaze.schedule.days )
+	{
+		if( tvmaze.schedule.days.length > 1 ) // flag as soapie if multiple days a week
+		{ flags[ "soapie" ]=true }
+	}
 	if( tvmaze.language ) { flags[ tvmaze.language.trim().toLowerCase() ]=true }
 	if( tvmaze.type     ) { flags[ tvmaze.type.trim().toLowerCase()     ]=true }
 	if( tvmaze.genres )
 	for( let genre of tvmaze.genres || [] )
 	{
 		flags[ genre.trim().toLowerCase() ]=true
+	}
+	if( moretags )
+	{
+		for( let tag of moretags )
+		{
+			flags[ tag.trim().toLowerCase() ]=true
+		}
 	}
 	
 	return check_flags(flags,rules)
@@ -274,23 +286,5 @@ shows.good_show=function(show,rules)
 // is this episode good?
 shows.good_episode=function(show,rules)
 {
-	if( !rules ) { return true }
-
-	let tvmaze=show.tvmaze||{}
-	let flags={}
-
-	if( tvmaze.language ) { flags[ tvmaze.language.trim().toLowerCase() ]=true }
-	if( tvmaze.type     ) { flags[ tvmaze.type.trim().toLowerCase()     ]=true }
-	if( tvmaze.genres )
-	for( let genre of tvmaze.genres || [] )
-	{
-		flags[ genre.trim().toLowerCase() ]=true
-	}
-
-	for( let tag of show.tags || [] )
-	{
-		flags[ tag.trim().toLowerCase() ]=true
-	}
-
-	return check_flags(flags,rules)
+	return shows.good_show( show , rules , show.tags )
 }
