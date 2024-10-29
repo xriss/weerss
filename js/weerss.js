@@ -288,16 +288,20 @@ weerss.getlist=async function()
 					}
 				}
 
-				for( let idx=bucket.length-1 ; idx>0 ; idx-- ) // remove huge/small files
+				for( let idx=bucket.length-1 ; idx>=0 ; idx-- ) // remove huge/small files
 				{
-					if( bucket[ idx ].torrent.file_length > weerss.config.episode.maxsize ) // 3GB
+					let it=bucket[ idx ]
+					if( it && it.torrent && it.torrent.file_length )
 					{
-						bucket.splice( idx , 1 )
-					}
+						if( it.torrent.file_length > weerss.config.episode.maxsize ) // 3GB
+						{
+							bucket.splice( idx , 1 )
+						}
 
-					if( bucket[ idx ].torrent.file_length < weerss.config.episode.minsize ) // 3GB
-					{
-						bucket.splice( idx , 1 )
+						if( it.torrent.file_length < weerss.config.episode.minsize ) // 3GB
+						{
+							bucket.splice( idx , 1 )
+						}
 					}
 				}
 
@@ -305,14 +309,18 @@ weerss.getlist=async function()
 				if( weerss.config.episode.best == "small" )
 				{
 					bucket.sort(function(a,b){
-						return a.torrent.file_length - b.torrent.file_length
+						let al=(a && a.torrent && a.torrent.file_length) || 0
+						let bl=(b && b.torrent && b.torrent.file_length) || 0
+						return al - bl
 					})
 				}
 				else
 				if( weerss.config.episode.best == "large" )
 				{
 					bucket.sort(function(a,b){
-						return b.torrent.file_length - a.torrent.file_length
+						let al=(a && a.torrent && a.torrent.file_length) || 0
+						let bl=(b && b.torrent && b.torrent.file_length) || 0
+						return bl - al
 					})
 				}
 				else
