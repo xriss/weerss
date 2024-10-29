@@ -569,7 +569,7 @@ weerss.dirs=async function(args)
 
 		try{ // continue if we get file errors?
 			
-			let escfile=`'${file.replace(/'/g, `'\\''`)}'`
+			let escfile=`'${file.replace(/'/g, `'\\''`)}/.'`
 			
 //			console.log(file)
 			let show={
