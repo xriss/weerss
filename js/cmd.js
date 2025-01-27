@@ -35,34 +35,34 @@ if( arg1=="help" )
 
 options:
 
-	Load config file, you should always load your custom config for all 
+	Load config file, you should always load your custom config for all
 	of the following commands...
 
 		--config=weerss.config
 
-	environment variables can also set options with the prefix WEERSS_ 
+	environment variables can also set options with the prefix WEERSS_
 	and the option name in all uppercase. eg:
 
 		export WEERSS_CONFIG=/home/dave/weerss.config
 
-All options are loaded into this config structure with . used as an 
+All options are loaded into this config structure with . used as an
 object seperator and the value parsed as json.
 
-EG To choose the number of items in your rss feed from the command line 
+EG To choose the number of items in your rss feed from the command line
 and thus overide the config file setting.
 
 	--rss.length=100
 or
 	--rss='{length:100}'
 
-With the later removing any other values in the rss object while the 
+With the later removing any other values in the rss object while the
 former just changes the legth value.
 
 commands:
 
 weerss config
-	Create a default to config file if we do not already have one and 
-	then print the current config. I recomend reading the default 
+	Create a default to config file if we do not already have one and
+	then print the current config. I recomend reading the default
 	config file for comments about how to configure weerss.
 
 weerss config --force
@@ -78,12 +78,12 @@ weerss rss
 	Save torrents as rss.
 
 weerss move
-	Move downloaded chaotic files to an organised jellyfin style 
+	Move downloaded chaotic files to an organised jellyfin style
 	directory.
 
 weerss dirs
-	Create a script to cleanup TV dirs using tvmaze. This does not do 
-	any cleanup just prints bash commands that you may wish to run 
+	Create a script to cleanup TV dirs using tvmaze. This does not do
+	any cleanup just prints bash commands that you may wish to run
 	later.
 
 weerss help
@@ -123,13 +123,18 @@ if( arg1=="dirs" )
 	await weerss.dirs(args)
 }
 else
+if( arg1=="clean" )
+{
+	await weerss.clean(args)
+}
+else
 {
 	console.log(` Unknown weerss command "${arg1}" `)
 }
 
 if(args.wtf)
 {
-	console.log(` Forcing exit `)	
+	console.log(` Forcing exit `)
 	wtf.dump()
 	process.exit(0)
 }

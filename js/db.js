@@ -166,6 +166,23 @@ db.delete=async function(table,key)
 	`,{$key:key})
 }
 
+db.clean=async function(table)
+{
+	await db.handle.each(`
+
+		SELECT * FROM ${table}
+
+	`,{},function(row)
+	{
+		try{
+			JSON.parse(row.value)
+		}catch(e){
+			console.log("removing broken json for "+row.key)
+			db.delete(table,row.key)
+		}
+	})
+}
+
 db.list=async function(table,filter)
 {
 	table=table||"keyval"
@@ -241,8 +258,6 @@ db.list=async function(table,filter)
 	}
 //	console.log(filters)
 
-try{
-
 	await db.handle.each(`
 
 		SELECT * FROM ${table}
@@ -250,19 +265,8 @@ try{
 
 	`,{},function(row)
 	{
-try{
-                rs.push(JSON.parse(row.value))
-}catch(e){
-console.log("BROKEN SQLITE RESULT")
-console.log(row.value)
-console.log(e)
-}
+		rs.push(JSON.parse(row.value))
 	})
-
-}catch(e){
-console.log("BROKEN SQLITE QUERY")
-console.log(e)
-}
 
 	return rs // filtered only, sorted by date
 }

@@ -39,14 +39,14 @@ weerss.config_default=`
   // number of episodes to list in the rss files
   length = 100
  }
- // decide which shows we like ( data from tvmaze ) 
+ // decide which shows we like ( data from tvmaze )
  show = {
   rules = [
    [ TRUE ]
    [ "!english" FALSE ]
   ]
  }
- // decide which episode we like tags come from filename 
+ // decide which episode we like tags come from filename
  episode = {
   best = "small"
   maxsize = 4000000000
@@ -76,7 +76,7 @@ weerss.load_config=async function(args)
 		{
 			console.log(` Loading config from `+args.config)
 			weerss.config=djon.load_file(args.config)
-			
+
 			let def=djon.load(weerss.config_default)
 			for(let n in def )
 			{
@@ -145,7 +145,7 @@ weerss.get_config_path=function(name)
 	{
 		f=path.join( d , f )
 	}
-	
+
 	return f
 }
 
@@ -205,9 +205,9 @@ weerss.fetch=async function()
 			await torrents.fill_torrent(item)
 			console.log(item.torrent)
 			items.set(item)
-		} 
+		}
 	}
-  
+
 	{
 		let its=await db.list("items",{show_is_null:1,torrent_is_not_null:1})
 		console.log("Checking shows : "+its.length)
@@ -218,7 +218,7 @@ weerss.fetch=async function()
 			console.log( item_to_string(item) )
 
 			items.set(item)
-		} 
+		}
 	}
 
 
@@ -230,10 +230,10 @@ weerss.getlist=async function()
 {
 	// all items then we sort and filter and list
 	let its=await db.list("items",{})
-	
+
 	let buckets={}
 	let itemshows={}
-	
+
 	for(let item of its)
 	{
 		if(!item.show) { continue }
@@ -245,18 +245,18 @@ weerss.getlist=async function()
 		let SxxExx=("S"+item.show.season.toString().padStart(2, "0")+"E"+item.show.episode.toString().padStart(2, "0") )
 
 		if(!buckets[item.show.id]){buckets[item.show.id]={}}
-		if(!buckets[item.show.id][SxxExx]){buckets[item.show.id][SxxExx]=[]}		
+		if(!buckets[item.show.id][SxxExx]){buckets[item.show.id][SxxExx]=[]}
 
 		buckets[item.show.id][SxxExx].push(item)
 
 		itemshows[item.show.id] = item.show
 	}
-	
+
 	let list=[]
 	for( let showid in itemshows )
 	{
 		let show=itemshows[showid]
-		
+
 		if( show.tvmaze )
 		{
 			if( ! shows.good_show(show,weerss.config.show.rules) ) // skip this show?
@@ -327,7 +327,7 @@ weerss.getlist=async function()
 				{
 					error("unknown config.episode.best option")
 				}
-				
+
 				while( bucket.length>0 ) // check episode flags ( uses words from filename + all the show flags )
 				{
 					if( ! shows.good_episode(bucket[ 0 ].show,weerss.config.episode.rules) ) // skip this episode?
@@ -397,7 +397,7 @@ weerss.save_rss=async function(args)
 
 		let dates=(new Date(item.date)).toUTCString()
 		let isodates=(new Date(item.date)).toISOString()
-		
+
 		let it={
 "/guid" : url ,
 "/link" : url ,
@@ -439,12 +439,21 @@ weerss.save_rss=async function(args)
 }
 
 
+weerss.clean=async function(args)
+{
+	await db.setup()
+
+	await db.clean("items")
+
+	await db.close()
+}
+
 weerss.move=async function(args)
 {
-	
+
 	let from=weerss.get_config_path("download") //args._[2] // optional dest dir
 	let dest=weerss.get_config_path("tv") //args._[2] // optional dest dir
-	
+
 	if(dest)
 	{
 		console.log( "Moving file from "+from+" to "+dest )
@@ -453,9 +462,9 @@ weerss.move=async function(args)
 	{
 		console.log( "Testing moving files from "+from )
 	}
-	
+
 	await db.setup()
-	
+
 	let getallfiles=function(dir, a)
 	{
 		a = a || []
@@ -485,7 +494,7 @@ weerss.move=async function(args)
 	for( let file of files )
 	{
 		try{ // continue if we get file errors?
-			
+
 			let ext=path.extname(file).toLowerCase()
 			let base=path.basename(file)
 			if( exts[ext] )
@@ -515,7 +524,7 @@ weerss.move=async function(args)
 
 					let to = tvname+"/Season "+show.season+"/"+tvname+" "+SxxExx+ext
 					console.log(file)
-					
+
 					if( dest )
 					{
 						to=path.join(dest , to)
@@ -539,12 +548,12 @@ weerss.move=async function(args)
 
 
 weerss.dirs=async function(args)
-{	
-	let dest=weerss.get_config_path("tv") 
+{
+	let dest=weerss.get_config_path("tv")
 
-	
+
 	await db.setup()
-	
+
 	let getdirs=function(dir, a)
 	{
 		a = a || []
@@ -568,10 +577,10 @@ weerss.dirs=async function(args)
 //		if( ! file.match(/\((\d\d\d\d)\)/) ) { continue }
 
 		try{ // continue if we get file errors?
-			
+
 			let escfiles=`'${file.replace(/'/g, `'\\''`)}/.'`
 			let escdir=`'${file.replace(/'/g, `'\\''`)}'`
-			
+
 //			console.log(file)
 			let show={
 				name:shows.clean_name(file),
@@ -618,7 +627,7 @@ weerss.dirs=async function(args)
 			{
 				console.log(`rm -rf ${escdir}`)
 			}
-			
+
 //			await new Promise(resolve => setTimeout(resolve, 500))
 
 		}catch(e){console.log(e)}
