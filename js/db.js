@@ -241,6 +241,8 @@ db.list=async function(table,filter)
 	}
 //	console.log(filters)
 
+try{
+
 	await db.handle.each(`
 
 		SELECT * FROM ${table}
@@ -251,11 +253,16 @@ db.list=async function(table,filter)
 try{
                 rs.push(JSON.parse(row.value))
 }catch(e){
-console.log("BROKEN SQLITE JSON")
+console.log("BROKEN SQLITE RESULT")
 console.log(row.value)
 console.log(e)
 }
 	})
+
+}catch(e){
+console.log("BROKEN SQLITE QUERY")
+console.log(e)
+}
 
 	return rs // filtered only, sorted by date
 }
