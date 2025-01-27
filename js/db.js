@@ -251,6 +251,7 @@ db.list=async function(table,filter)
 try{
                 rs.push(JSON.parse(row.value))
 }catch(e){
+console.log("BROKEN SQLITE JSON")
 console.log(row.value)
 console.log(e)
 }
