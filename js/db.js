@@ -16,9 +16,9 @@ db.test=async function()
 	await db.setup()
 	await db.set(null,"hello","world")
 	await db.set(null,"hell","{world:poop}")
-	
+
 	console.log( await db.list() )
-	
+
 	await db.close()
 }
 
@@ -41,63 +41,63 @@ db.setup=async function()
 
 
 	await db.handle.run(`
- 
+
 		CREATE TABLE IF NOT EXISTS keyval
 		(
 			key STRING PRIMARY KEY ,
 			value JSONB NOT NULL
 		);
- 
+
     `);
 
 	await db.handle.run(`
- 
+
 		CREATE TABLE IF NOT EXISTS hoard
 		(
 			key STRING PRIMARY KEY ,
 			value JSONB NOT NULL
 		);
- 
+
     `);
 
 	await db.handle.run(`
- 
+
 		CREATE TABLE IF NOT EXISTS feeds
 		(
 			key STRING PRIMARY KEY ,
 			value JSONB NOT NULL
 		);
- 
+
     `);
 
 	await db.handle.run(`
- 
+
 		CREATE TABLE IF NOT EXISTS items
 		(
 			key STRING PRIMARY KEY ,
 			value JSONB NOT NULL
 		);
- 
+
     `);
 
 	await db.handle.run(`
- 
+
 		CREATE TABLE IF NOT EXISTS torrents
 		(
 			key STRING PRIMARY KEY ,
 			value JSONB NOT NULL
 		);
- 
+
     `);
 
 	await db.handle.run(`
- 
+
 		CREATE TABLE IF NOT EXISTS shows
 		(
 			key STRING PRIMARY KEY ,
 			value JSONB NOT NULL
 		);
- 
+
     `);
 
 }
@@ -128,7 +128,7 @@ db.set=async function(table,key,value)
 		INSERT INTO ${table} (key,value)
 		VALUES ($key,$value)
 		ON CONFLICT (key)
-		DO 
+		DO
 			UPDATE SET value = $value
 			WHERE key = $key;
 
@@ -171,7 +171,7 @@ db.list=async function(table,filter)
 	table=table||"keyval"
 	filter=filter || {}
 	let rs=[]
-	
+
 	let filters=[]
 	for(let fb in filter)
 	{
@@ -240,15 +240,20 @@ db.list=async function(table,filter)
 		filters="WHERE "+filters.join(" AND\n")
 	}
 //	console.log(filters)
-	
+
 	await db.handle.each(`
-	
+
 		SELECT * FROM ${table}
 		${filters}
 
 	`,{},function(row)
 	{
-		rs.push(JSON.parse(row.value))
+try{
+                rs.push(JSON.parse(row.value))
+}catch(e){
+console.log(row.value)
+console.log(e)
+}
 	})
 
 	return rs // filtered only, sorted by date
