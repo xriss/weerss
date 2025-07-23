@@ -253,37 +253,37 @@ weerss.bucket_sort=function(bucket)
 	return bucket
 }
 
+weerss.item_filter=function(key,item)
+{
+	if(!item.show) { return false }
+	if(item.show.fail) { return false }
+	if(!item.show.tvmaze) { return false }
+	if( ! shows.good_show(item.show,weerss.config.show.rules) ) { return false }
+
+	// remove huge/small files
+	if(!item.torrent) { return false }
+	if(!item.torrent.file_length) { return false }
+	if( item.torrent.file_length > weerss.config.episode.maxsize ) { return false }
+	if( item.torrent.file_length < weerss.config.episode.minsize ) { return false }
+
+	if( weerss.config.episode.maxage ) // remove old episodes
+	{
+		if(!item.show.date) { return false }
+		let now=(new Date()).getTime()
+		let test=Date.parse(item.show.date)
+		let days=Math.floor((now-test)/(1000*60*60*24))
+		if( days > weerss.config.episode.maxage ) { return false } // this episode is too old
+	}
+
+	if( ! shows.good_episode(item.show,weerss.config.episode.rules) ) { return false } // skip this episode?
+
+	return true
+}
+
 weerss.getlist=async function(filters)
 {
-	let cb=function(key,item)
-	{
-		if(!item.show) { return false }
-		if(item.show.fail) { return false }
-		if(!item.show.tvmaze) { return false }
-		if( ! shows.good_show(item.show,weerss.config.show.rules) ) { return false }
-
-		// remove huge/small files
-		if(!item.torrent) { return false }
-		if(!item.torrent.file_length) { return false }
-		if( item.torrent.file_length > weerss.config.episode.maxsize ) { return false }
-		if( item.torrent.file_length < weerss.config.episode.minsize ) { return false }
-
-		if( weerss.config.episode.maxage ) // remove old episodes
-		{
-			if(!item.show.date) { return false }
-			let now=(new Date()).getTime()
-			let test=Date.parse(item.show.date)
-			let days=Math.floor((now-test)/(1000*60*60*24))
-			if( days > weerss.config.episode.maxage ) { return false } // this episode is too old
-		}
-
-		if( ! shows.good_episode(item.show,weerss.config.episode.rules) ) { return false } // skip this episode?
-
-		return true
-	}
-	
 	// all items then we sort and filter and list
-	let its=await db.list("items",filters||{},cb)
+	let its=await db.list("items",filters||{},weerss.item_filter)
 
 	let buckets={}
 	let itemshows={}
@@ -613,6 +613,35 @@ weerss.purge=async function(args)
 {
 	await db.setup()
 
+	let keep=0
+	let drop=0
+	
+	await db.handle.each(`
+
+		SELECT * FROM items
+
+	`,{},function(row)
+	{
+		let k=row.key
+		let v=JSON.parse(row.value)
+		
+		if( weerss.item_filter(k,v) )
+		{
+			// keep
+			process.stdout.write(".")
+			keep++
+		}
+		else
+		{
+			// delete
+			db.delete("items",k)
+			process.stdout.write("X")
+			drop++
+		}
+	})
+	process.stdout.write("\n")
+
+	console.log("Kept "+keep+" dropped "+drop+" items.")
 
 	await db.close()
 }

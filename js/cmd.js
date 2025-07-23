@@ -86,6 +86,9 @@ weerss dirs
 	any cleanup just prints bash commands that you may wish to run
 	later.
 
+weerss purge
+	Remove items from database that do not pass the current filters.
+
 weerss help
 	Print this help message.
 
