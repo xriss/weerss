@@ -206,7 +206,7 @@ feeds.fetch_all=async function()
 		return ( b.items_date || 0 ) - ( a.items_date || 0 )
 	})
 	
-	let topitem=(await db.list("items",{},"date","prev",1))[0] ; topitem=topitem && topitem.uuid
+//	let topitem=(await db.list("items",{},"date","prev",1))[0] ; topitem=topitem && topitem.uuid
 
 	for(let feed of list )
 	{

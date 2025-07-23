@@ -226,10 +226,10 @@ weerss.fetch=async function()
 	await db.close()
 }
 
-weerss.getlist=async function()
+weerss.getlist=async function(filters)
 {
 	// all items then we sort and filter and list
-	let its=await db.list("items",{})
+	let its=await db.list("items",filters||{})
 
 	let buckets={}
 	let itemshows={}
@@ -360,9 +360,14 @@ weerss.getlist=async function()
 
 weerss.list=async function(args)
 {
+	let past=new Date()
+	past.setDate( past.getDate()-28 )
+	past=past.toISOString()
+	let filters={date_gt:past}
+
 	await db.setup()
 
-	let list=(await weerss.getlist()).slice(0,weerss.config.rss.length)
+	let list=(await weerss.getlist(filters)).slice(0,weerss.config.rss.length)
 	for(let item of list)
 	{
 		console.log( item_to_string(item))
@@ -416,7 +421,11 @@ weerss.save_rss=async function(args)
 		rss_items.push(it)
 	}
 
-	let list=(await weerss.getlist(weerss.config.show.rules)).slice(0,weerss.config.rss.length)
+	let past=new Date()
+	past.setDate( past.getDate()-28 )
+	past=past.toISOString()
+	let filters={date_gt:past}
+	let list=(await weerss.getlist(filters)).slice(0,weerss.config.rss.length)
 	for(let item of list)
 	{
 		push_item(item)
