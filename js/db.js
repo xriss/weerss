@@ -183,7 +183,7 @@ db.clean=async function(table)
 	})
 }
 
-db.list=async function(table,filter)
+db.list=async function(table,filter,cb)
 {
 	table=table||"keyval"
 	filter=filter || {}
@@ -265,7 +265,11 @@ db.list=async function(table,filter)
 
 	`,{},function(row)
 	{
-		rs.push(JSON.parse(row.value))
+		let v=JSON.parse(row.value)
+		if((!cb)||(cb(row.key,v)))
+		{
+			rs.push(v)
+		}
 	})
 
 	return rs // filtered only, sorted by date

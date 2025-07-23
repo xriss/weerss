@@ -128,6 +128,11 @@ if( arg1=="clean" )
 	await weerss.clean(args)
 }
 else
+if( arg1=="purge" )
+{
+	await weerss.purge(args)
+}
+else
 {
 	console.log(` Unknown weerss command "${arg1}" `)
 }

@@ -226,22 +226,70 @@ weerss.fetch=async function()
 	await db.close()
 }
 
+weerss.bucket_sort=function(bucket)
+{
+	if( weerss.config.episode.best == "small" )
+	{
+		bucket.sort(function(a,b){
+			let al=(a && a.torrent && a.torrent.file_length) || 0
+			let bl=(b && b.torrent && b.torrent.file_length) || 0
+			return al - bl
+		})
+	}
+	else
+	if( weerss.config.episode.best == "large" )
+	{
+		bucket.sort(function(a,b){
+			let al=(a && a.torrent && a.torrent.file_length) || 0
+			let bl=(b && b.torrent && b.torrent.file_length) || 0
+			return bl - al
+		})
+	}
+	else
+	{
+		error("unknown config.episode.best option")
+	}
+	
+	return bucket
+}
+
 weerss.getlist=async function(filters)
 {
+	let cb=function(key,item)
+	{
+		if(!item.show) { return false }
+		if(item.show.fail) { return false }
+		if(!item.show.tvmaze) { return false }
+		if( ! shows.good_show(item.show,weerss.config.show.rules) ) { return false }
+
+		// remove huge/small files
+		if(!item.torrent) { return false }
+		if(!item.torrent.file_length) { return false }
+		if( item.torrent.file_length > weerss.config.episode.maxsize ) { return false }
+		if( item.torrent.file_length < weerss.config.episode.minsize ) { return false }
+
+		if( weerss.config.episode.maxage ) // remove old episodes
+		{
+			if(!item.show.date) { return false }
+			let now=(new Date()).getTime()
+			let test=Date.parse(it.show.date)
+			let days=Math.floor((now-test)/(1000*60*60*24))
+			if( days > weerss.config.episode.maxage ) { return false } // this episode is too old
+		}
+
+		if( ! shows.good_episode(item.show,weerss.config.episode.rules) ) { return false } // skip this episode?
+
+		return true
+	}
+	
 	// all items then we sort and filter and list
-	let its=await db.list("items",filters||{})
+	let its=await db.list("items",filters||{},cb)
 
 	let buckets={}
 	let itemshows={}
 
 	for(let item of its)
 	{
-		if(!item.show) { continue }
-//		if(!item.show.tvmaze) { continue }
-		if(item.show.fail) { continue }
-
-//		let bid=item.show.id+"_"+item.show.season+"_"+item.show.episode
-
 		let SxxExx=("S"+item.show.season.toString().padStart(2, "0")+"E"+item.show.episode.toString().padStart(2, "0") )
 
 		if(!buckets[item.show.id]){buckets[item.show.id]={}}
@@ -255,101 +303,16 @@ weerss.getlist=async function(filters)
 	let list=[]
 	for( let showid in itemshows )
 	{
-		let show=itemshows[showid]
-
-		if( show.tvmaze )
+		for( let SxxExx in buckets[showid] )
 		{
-			if( ! shows.good_show(show,weerss.config.show.rules) ) // skip this show?
+			let bucket=buckets[showid][SxxExx]
+
+			weerss.bucket_sort(bucket) // sort by size etc
+
+			if( bucket[0] )
 			{
-				continue
+				list.push( bucket[0] )
 			}
-//			console.log("SHOW : "+show.tvmaze.name+" + "+(show.tvmaze.type+" "+show.tvmaze.genres.join(" ")).toLowerCase() )
-
-			for( let SxxExx in buckets[showid] )
-			{
-				let bucket=buckets[showid][SxxExx]
-//				console.log( SxxExx + " x " + bucket.length )
-
-				if( weerss.config.episode.maxage )
-				{
-					for( let it of bucket )
-					{
-						if( (it.show) && (it.show.date) ) // check all for first episode we find with valid date
-						{
-							let now=(new Date()).getTime()
-							let test=Date.parse(it.show.date)
-							let days=Math.floor((now-test)/(1000*60*60*24))
-							if( days > weerss.config.episode.maxage ) // this episode is too old
-							{
-								while( bucket.length > 0){ bucket.pop() } // empty array
-							}
-							break;
-						}
-					}
-				}
-
-				for( let idx=bucket.length-1 ; idx>=0 ; idx-- ) // remove huge/small files
-				{
-					let it=bucket[ idx ]
-					if( it && it.torrent && it.torrent.file_length )
-					{
-						if( it.torrent.file_length > weerss.config.episode.maxsize ) // 3GB
-						{
-							bucket.splice( idx , 1 )
-						}
-
-						if( it.torrent.file_length < weerss.config.episode.minsize ) // 3GB
-						{
-							bucket.splice( idx , 1 )
-						}
-					}
-				}
-
-
-				if( weerss.config.episode.best == "small" )
-				{
-					bucket.sort(function(a,b){
-						let al=(a && a.torrent && a.torrent.file_length) || 0
-						let bl=(b && b.torrent && b.torrent.file_length) || 0
-						return al - bl
-					})
-				}
-				else
-				if( weerss.config.episode.best == "large" )
-				{
-					bucket.sort(function(a,b){
-						let al=(a && a.torrent && a.torrent.file_length) || 0
-						let bl=(b && b.torrent && b.torrent.file_length) || 0
-						return bl - al
-					})
-				}
-				else
-				{
-					error("unknown config.episode.best option")
-				}
-
-				while( bucket.length>0 ) // check episode flags ( uses words from filename + all the show flags )
-				{
-					if( ! shows.good_episode(bucket[ 0 ].show,weerss.config.episode.rules) ) // skip this episode?
-					{
-						bucket.shift() // remove
-					}
-					else
-					{
-						break
-					}
-				}
-//				console.log(aa.join(" "))
-//				console.log(bucket[0].show.tags.join(" ") + " : " + Math.floor(bucket[0].torrent.file_length/(1024*1024)) )
-				if( bucket[0] )
-				{
-					list.push( bucket[0] )
-				}
-			}
-		}
-		else
-		{
-//			console.log("UNKNOWN : "+show.name)
 		}
 	}
 	list.sort( function(a,b){
@@ -360,14 +323,16 @@ weerss.getlist=async function(filters)
 
 weerss.list=async function(args)
 {
+/*
 	let past=new Date()
 	past.setDate( past.getDate()-28 )
 	past=past.toISOString()
 	let filters={date_gt:past}
+*/
 
 	await db.setup()
 
-	let list=(await weerss.getlist(filters)).slice(0,weerss.config.rss.length)
+	let list=(await weerss.getlist()).slice(0,weerss.config.rss.length)
 	for(let item of list)
 	{
 		console.log( item_to_string(item))
@@ -421,11 +386,7 @@ weerss.save_rss=async function(args)
 		rss_items.push(it)
 	}
 
-	let past=new Date()
-	past.setDate( past.getDate()-28 )
-	past=past.toISOString()
-	let filters={date_gt:past}
-	let list=(await weerss.getlist(filters)).slice(0,weerss.config.rss.length)
+	let list=(await weerss.getlist()).slice(0,weerss.config.rss.length)
 	for(let item of list)
 	{
 		push_item(item)
@@ -642,6 +603,15 @@ weerss.dirs=async function(args)
 		}catch(e){console.log(e)}
 	}
 
+
+
+	await db.close()
+}
+
+
+weerss.purge=async function(args)
+{
+	await db.setup()
 
 
 	await db.close()
