@@ -642,6 +642,8 @@ weerss.purge=async function(args)
 	process.stdout.write("\n")
 
 	console.log("Kept "+keep+" dropped "+drop+" items.")
+	
+	await db.vacuum()
 
 	await db.close()
 }
