@@ -11,9 +11,6 @@ import WebTorrent from 'webtorrent'
 import { remote } from 'parse-torrent'
 import memchunks from 'memory-chunk-store'
 
-
-
-
 torrents.get=async function(url) // always slow
 {
 	return await db.get("torrents",url)
@@ -30,6 +27,23 @@ torrents.fetch=async function(url)
 	let ret = await torrents.get(url)
 	if( ret && ret.data) { return ret.data }
 	
+
+	// resolve url ( which may redirect to a magnet, damn you jacket )
+	while(url.toLowerCase().startsWith("http"))
+	{
+		let r=await fetch(url, { redirect: 'manual' })
+		if( r && r.status>=300 && r.status<=399  )
+		{ 
+			let location=r.headers.get("location")
+			if(url==location) { break }
+			url=location
+		}
+		else // finished
+		{
+			break
+		}
+	}
+
 	let urlplus=url
 	if(urlplus.toLowerCase().startsWith("magnet:")) // auto add trackers
 	{
@@ -46,11 +60,14 @@ torrents.fetch=async function(url)
 			}
 		}
 	}
+	else // follow redirects
+	{
+	}
 //	console.log(urlplus)
 	
 	let torrent_parse=function(url) {
 		return new Promise(function(resolve, reject) {
-			remote(url, { timeout: 60 * 1000 }, function(err, parsedTorrent){
+			remote(url, { timeout: 60 * 1000 , followRedirects: true }, function(err, parsedTorrent){
 				if (err) { reject(err) }
 				resolve(parsedTorrent)
 			})
