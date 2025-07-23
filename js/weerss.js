@@ -272,7 +272,7 @@ weerss.getlist=async function(filters)
 		{
 			if(!item.show.date) { return false }
 			let now=(new Date()).getTime()
-			let test=Date.parse(it.show.date)
+			let test=Date.parse(item.show.date)
 			let days=Math.floor((now-test)/(1000*60*60*24))
 			if( days > weerss.config.episode.maxage ) { return false } // this episode is too old
 		}
