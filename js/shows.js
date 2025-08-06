@@ -59,7 +59,7 @@ shows.prepare=function(show)
 // lookup show episode on tvmaze, this needs a valid tvmaze id
 shows.get_tvmaze_episode=async function(showid,season,episode)
 {
-	await new Promise(resolve => setTimeout(resolve, 500)) // do not spam requests
+	await new Promise(resolve => setTimeout(resolve, 100)) // do not spam requests
 
 	let ret=null
 	
