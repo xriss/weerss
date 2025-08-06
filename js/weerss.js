@@ -199,12 +199,13 @@ weerss.fetch=async function()
 	{
 		let its=await db.list("items",{torrent_is_null:1})
 		console.log("Checking torrents : "+its.length)
-		for(let item of its)
+		for(let idx in its)
 		{
 			try{
+				let item=its[idx]
 				console.log(item.uuid)
 				await torrents.fill_torrent(item)
-				console.log(item.torrent)
+				console.log((idx+1)+"/"+its.length+" : "+JSON.stringify(item.torrent,null,1))
 				items.set(item)
 			}catch(e){console.log(e)}
 		}
