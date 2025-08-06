@@ -123,11 +123,11 @@ torrents.fetch=async function(url)
 				f.length=ff.length
 				data.files.push(f)
 			}
-			torrent.destroy()
+			await torrent.destroy()
 		}
 		if(client)
 		{
-			if(!client.destroyed){client.destroy()}
+			if(!client.destroyed){await client.destroy()}
 			client=undefined
 		}
 	}
