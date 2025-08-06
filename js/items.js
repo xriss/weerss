@@ -153,7 +153,8 @@ items.prepare=function(item,feed)
 	}
 
 	// prefer link, but might be a feed url + ( id or date )
-	item.uuid=item.link || ( item.feed+"#"+( ( rss["/guid"] || atom["/id"] ) || (""+item.date) ) )
+	// jacket constantly generates new links , so can not be used
+	item.uuid=( item.feed+"#"+( ( rss["/guid"] || atom["/id"] ) || (""+item.date) ) )
 
 	return item
 }
