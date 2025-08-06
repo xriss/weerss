@@ -205,7 +205,7 @@ weerss.fetch=async function()
 				let item=its[idx]
 				console.log(item.uuid)
 				await torrents.fill_torrent(item)
-				console.log((idx+1)+"/"+its.length+" : "+JSON.stringify(item.torrent,null,1))
+				console.log(idx+"/"+its.length+" : "+JSON.stringify(item.torrent,null,1))
 				items.set(item)
 			}catch(e){console.log(e)}
 		}
