@@ -214,11 +214,12 @@ weerss.fetch=async function()
 	{
 		let its=await db.list("items",{show_is_null:1,torrent_is_not_null:1})
 		console.log("Checking shows : "+its.length)
-		for(let item of its)
+		for(let idx in its)
 		{
+			let item=its[idx]
 			await shows.fill_show(item)
 
-			console.log( item_to_string(item) )
+			console.log( idx+"/"+its.length+" : "+item_to_string(item) )
 
 			items.set(item)
 		}
