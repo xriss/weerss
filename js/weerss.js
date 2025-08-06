@@ -201,12 +201,12 @@ weerss.fetch=async function()
 		console.log("Checking torrents : "+its.length)
 		for(let item of its)
 		{
-			console.log(item.uuid)
 			try{
+				console.log(item.uuid)
 				await torrents.fill_torrent(item)
+				console.log(item.torrent)
+				items.set(item)
 			}catch(e){console.log(e)}
-			console.log(item.torrent)
-			items.set(item)
 		}
 	}
 
