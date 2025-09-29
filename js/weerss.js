@@ -620,6 +620,17 @@ weerss.purge=async function(args)
 	let keep=0
 	let drop=0
 	
+	await db.handle.run(`
+
+		DELETE FROM keyval WHERE json_valid(value)==0 ;
+		DELETE FROM hoard WHERE json_valid(value)==0 ;
+		DELETE FROM feeds WHERE json_valid(value)==0 ;
+		DELETE FROM items WHERE json_valid(value)==0 ;
+		DELETE FROM torrents WHERE json_valid(value)==0 ;
+		DELETE FROM shows WHERE json_valid(value)==0 ;
+
+	`)
+
 	await db.handle.each(`
 
 		SELECT * FROM items
