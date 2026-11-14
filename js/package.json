@@ -32,5 +32,12 @@
 	},
 	"devDependencies": {
 		"webpack-cli": "^5.1.4"
+	},
+	"allowScripts": {
+		"utp-native": true,
+		"ip-set": true,
+		"bufferutil": true,
+		"utf-8-validate": true,
+		"node-datachannel": true
 	}
 }
