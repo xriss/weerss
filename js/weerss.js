@@ -614,30 +614,30 @@ weerss.purge=async function(args)
 	let drop=0
 
 // delete bad json, wtf	
-	await db.handle.run(`
+	db.handle.exec(`
 		DELETE FROM keyval WHERE json_valid(value)==0 ;
 	`)
-	await db.handle.run(`
+	db.handle.exec(`
 		DELETE FROM hoard WHERE json_valid(value)==0 ;
 	`)
-	await db.handle.run(`
+	db.handle.exec(`
 		DELETE FROM feeds WHERE json_valid(value)==0 ;
 	`)
-	await db.handle.run(`
+	db.handle.exec(`
 		DELETE FROM items WHERE json_valid(value)==0 ;
 	`)
-	await db.handle.run(`
+	db.handle.exec(`
 		DELETE FROM torrents WHERE json_valid(value)==0 ;
 	`)
-	await db.handle.run(`
+	db.handle.exec(`
 		DELETE FROM shows WHERE json_valid(value)==0 ;
 	`)
 
-	await db.handle.each(`
+	for ( const row of db.handle.prepare(`
 
 		SELECT * FROM items
 
-	`,{},function(row)
+	`).iterate({}) )
 	{
 		let k=row.key
 		let v=JSON.parse(row.value)
@@ -655,7 +655,7 @@ weerss.purge=async function(args)
 			process.stdout.write("X")
 			drop++
 		}
-	})
+	}
 	process.stdout.write("\n")
 
 	console.log("Kept "+keep+" dropped "+drop+" items.")

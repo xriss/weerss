@@ -111,29 +111,28 @@ db.close=async function()
 db.get=async function(table,key)
 {
 	table=table||"keyval"
-	let row=await db.handle.get(`
+	let row=db.handle.prepare(`
 
 		SELECT * FROM ${table}
 		WHERE key=$key;
 
-	`,{$key:key})
+	`).get({$key:key})
 	return row && row.value && JSON.parse(row.value)
 }
 
 db.set=async function(table,key,value)
 {
 	table=table||"keyval"
-	value=stringify(value)
-	db.handle.exec(`
+	db.handle.prepare(`
 
 		INSERT INTO ${table} (key,value)
-		VALUES (${key},${value})
+		VALUES ($key,$value)
 		ON CONFLICT (key)
 		DO
-			UPDATE SET value = ${value}
-			WHERE key = ${key};
+			UPDATE SET value = $value
+			WHERE key = $key;
 
-	`)
+	`).run({$value:stringify(value),$key:key})
 }
 
 
@@ -160,11 +159,11 @@ db.vacuum=async function()
 db.delete=async function(table,key)
 {
 	table=table||"keyval"
-	db.handle.exec(`
+	db.handle.prepare(`
 
-		DELETE FROM ${table} WHERE key=${key};
+		DELETE FROM ${table} WHERE key=$key;
 
-	`)
+	`).run({key:key})
 }
 
 db.clean=async function(table)
