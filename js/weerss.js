@@ -320,7 +320,9 @@ weerss.getlist=async function(filters)
 		}
 	}
 	list.sort( function(a,b){
-		return new Date(b.date) - new Date(a.date)
+		// sort by date of episode ?
+//		return new Date(b.show.date || 0) - new Date(a.show.date || 0)
+		return new Date(b.date || 0) - new Date(a.date || 0)
 	})
 	return list
 }
@@ -412,15 +414,6 @@ weerss.save_rss=async function(args)
 	await db.close()
 }
 
-
-weerss.clean=async function(args)
-{
-	await db.setup()
-
-	await db.clean("items")
-
-	await db.close()
-}
 
 weerss.move=async function(args)
 {

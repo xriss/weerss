@@ -126,11 +126,6 @@ if( arg1=="dirs" )
 	await weerss.dirs(args)
 }
 else
-if( arg1=="clean" )
-{
-	await weerss.clean(args)
-}
-else
 if( arg1=="purge" )
 {
 	await weerss.purge(args)

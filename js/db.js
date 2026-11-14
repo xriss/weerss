@@ -3,7 +3,7 @@ let db={}
 export default db
 
 
-import { AsyncDatabase } from "promised-sqlite3"
+import { DatabaseSync } from 'node:sqlite';
 
 import { configure } from 'safe-stable-stringify'
 const stringify = configure({})
@@ -29,18 +29,18 @@ db.name="weerss"
 db.setup=async function()
 {
 
-	db.handle = await AsyncDatabase.open( weerss.get_config_path("sqlite") );
+	db.handle = new DatabaseSync( weerss.get_config_path("sqlite") );
 
 //	db.handle.inner.on("trace", (sql) => console.log("[TRACE]", sql));
 
-	await db.handle.run("PRAGMA synchronous = 0 ;");
-	await db.handle.run("PRAGMA encoding = \"UTF-8\" ;");
-	await db.handle.run("PRAGMA journal_mode=WAL;");
-	await db.handle.run("PRAGMA mmap_size=268435456;");
-	await db.handle.run("PRAGMA temp_store=2;");
+	db.handle.exec("PRAGMA synchronous = 0 ;");
+	db.handle.exec("PRAGMA encoding = \"UTF-8\" ;");
+	db.handle.exec("PRAGMA journal_mode=WAL;");
+	db.handle.exec("PRAGMA mmap_size=268435456;");
+	db.handle.exec("PRAGMA temp_store=2;");
 
 
-	await db.handle.run(`
+	db.handle.exec(`
 
 		CREATE TABLE IF NOT EXISTS keyval
 		(
@@ -50,7 +50,7 @@ db.setup=async function()
 
     `);
 
-	await db.handle.run(`
+	db.handle.exec(`
 
 		CREATE TABLE IF NOT EXISTS hoard
 		(
@@ -60,7 +60,7 @@ db.setup=async function()
 
     `);
 
-	await db.handle.run(`
+	db.handle.exec(`
 
 		CREATE TABLE IF NOT EXISTS feeds
 		(
@@ -70,7 +70,7 @@ db.setup=async function()
 
     `);
 
-	await db.handle.run(`
+	db.handle.exec(`
 
 		CREATE TABLE IF NOT EXISTS items
 		(
@@ -80,7 +80,7 @@ db.setup=async function()
 
     `);
 
-	await db.handle.run(`
+	db.handle.exec(`
 
 		CREATE TABLE IF NOT EXISTS torrents
 		(
@@ -90,7 +90,7 @@ db.setup=async function()
 
     `);
 
-	await db.handle.run(`
+	db.handle.exec(`
 
 		CREATE TABLE IF NOT EXISTS shows
 		(
@@ -123,56 +123,57 @@ db.get=async function(table,key)
 db.set=async function(table,key,value)
 {
 	table=table||"keyval"
-	await db.handle.run(`
+	value=stringify(value)
+	db.handle.exec(`
 
 		INSERT INTO ${table} (key,value)
-		VALUES ($key,$value)
+		VALUES (${key},${value})
 		ON CONFLICT (key)
 		DO
-			UPDATE SET value = $value
-			WHERE key = $key;
+			UPDATE SET value = ${value}
+			WHERE key = ${key};
 
-	`,{$key:key,$value:stringify(value)})
+	`)
 }
 
 
 db.clear=async function(table)
 {
 	table=table||"keyval"
-	await db.handle.run(`
+	db.handle.exec(`
 
 		DELETE FROM ${table};
 
-	`,{})
+	`)
 
 }
 
 db.vacuum=async function()
 {
-	await db.handle.run(`
+	db.handle.exec(`
 
 		VACUUM;
 
-	`,{})
+	`)
 }
 
 db.delete=async function(table,key)
 {
 	table=table||"keyval"
-	await db.handle.run(`
+	db.handle.exec(`
 
-		DELETE FROM ${table} WHERE key=$key;
+		DELETE FROM ${table} WHERE key=${key};
 
-	`,{$key:key})
+	`)
 }
 
 db.clean=async function(table)
 {
-	await db.handle.each(`
+	for ( const row of db.handle.prepare(`
 
 		SELECT * FROM ${table}
 
-	`,{},function(row)
+	`).iterate({}) )
 	{
 		try{
 			JSON.parse(row.value)
@@ -180,7 +181,7 @@ db.clean=async function(table)
 			console.log("removing broken json for "+row.key)
 			db.delete(table,row.key)
 		}
-	})
+	}
 }
 
 db.list=async function(table,filter,cb)
@@ -258,19 +259,19 @@ db.list=async function(table,filter,cb)
 	}
 //	console.log(filters)
 
-	await db.handle.each(`
+	for ( const row of db.handle.prepare(`
 
 		SELECT * FROM ${table}
 		${filters}
 
-	`,{},function(row)
+	`).iterate({}) )
 	{
 		let v=JSON.parse(row.value)
 		if((!cb)||(cb(row.key,v)))
 		{
 			rs.push(v)
 		}
-	})
+	}
 
 	return rs // filtered only, sorted by date
 }
